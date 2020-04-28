@@ -1,0 +1,61 @@
+<!DOCTYPE HTML>
+<meta charset="UTF-8">
+<title>Map of my walks</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ==" crossorigin=" anonymous">
+<script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js" integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew==" crossorigin="anonymous"></script>
+<script src="https://api.tiles.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js" integrity="sha512-qPGfHsmvlEDWKJf0G5kCGkuisDOyVmtaQplgsQs4S7urb/iXmIT9kw53flMn8eaEKNzZtcV6Zd6mQIbc4klcXg==" crossorigin="anonymous"></script>
+<!--<script src="http://maps.stamen.com/js/tile.stamen.js?v1.3.0" integrity="sha512-z4PhNX7vuL3xVChQ1m2AB9Yg5AULVxXcg/SpIdNs6c5H0NE8XYXysP+DGNKHfuwvY7kxvUdBeoGlODJ6+SfaPg==" crossorigin="anonymous"></script>--> <!-- not CORS enabled, so can't do integrity! -->
+<script src="http://maps.stamen.com/js/tile.stamen.js?v1.3.0"></script>
+<script src="https://drafts.csswg.org/css-color-4/multiply-matrices.js"></script>
+<script src="https://drafts.csswg.org/css-color-4/conversions.js"></script>
+<style>
+html, body, div#map { margin: 0; border: none; padding: 0; width: 100%; height: 100% }
+</style>
+
+<div id="map">
+</div>
+
+<script>
+
+let map = L.map("map").setView([37.447, -122.1579], 15);
+map.addLayer(new L.StamenTileLayer("terrain"));
+
+fetch("gpx-files/list.txt").then(response => response.text()).then(text => {
+    let entries = text.split("\n");
+    entries.pop(); // "" at the end
+    for (let index in entries) {
+        let gpx = entries[index];
+        let isodate = gpx.substring(0, 10);
+        // gpxlayer is a https://leafletjs.com/reference-1.6.0.html#geojson
+        let gpxlayer = omnivore.gpx(`gpx-files/${gpx}`).addTo(map);
+
+        /*
+         * see:
+         *   https://css.land/lch/
+         *   https://drafts.csswg.org/css-color-4/#lab-to-rgb
+         *   https://drafts.csswg.org/css-color-4/#lch-to-lab
+         * L: 55%
+         * C: 69
+         * H: go from hue 290 (coldest) to hue 0 (warmest)
+         */
+        let c = gam_sRGB(XYZ_to_lin_sRGB(D50_to_D65(Lab_to_XYZ(LCH_to_Lab([55, 69, 290 * (entries.length - index) / entries.length]))))).map(rgb => ("0" + Math.round(Math.max(0, Math.min(rgb, 1)) * 255).toString(16)).slice(-2));
+        let color = `#${c[0]}${c[1]}${c[2]}`;
+        gpxlayer.on("ready", function() {
+            // Need to do this after the layer loads.
+            gpxlayer.setStyle(feature => ({ color, weight: 4 }));
+        });
+
+        gpxlayer.bindTooltip(isodate, { sticky: true });
+        gpxlayer.on("tooltipopen", function() {
+            gpxlayer.setStyle(feature => ({ color, weight: 8 }));
+            // This works, but setZIndex doesn't... and there's no clear
+            // way to undo this without reordering everything.
+            gpxlayer.bringToFront();
+        });
+        gpxlayer.on("tooltipclose", function() {
+            gpxlayer.setStyle(feature => ({ color, weight: 4 }));
+        });
+    }
+});
+
+</script>

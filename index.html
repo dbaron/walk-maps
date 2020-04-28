@@ -24,11 +24,15 @@ map.addLayer(new L.StamenTileLayer("toner"));
 fetch("gpx-files/list.txt").then(response => response.text()).then(text => {
     let entries = text.split("\n");
     entries.pop(); // "" at the end
+
+    let gpxlayers = [];
+
     for (let index in entries) {
         let gpx = entries[index];
         let isodate = gpx.substring(0, 10);
         // gpxlayer is a https://leafletjs.com/reference-1.6.0.html#geojson
         let gpxlayer = omnivore.gpx(`gpx-files/${gpx}`).addTo(map);
+        gpxlayers.push(gpxlayer);
 
         /*
          * see:
@@ -49,12 +53,16 @@ fetch("gpx-files/list.txt").then(response => response.text()).then(text => {
         gpxlayer.bindTooltip(isodate, { sticky: true });
         gpxlayer.on("tooltipopen", function() {
             gpxlayer.setStyle(feature => ({ color, weight: 8 }));
-            // This works, but setZIndex doesn't... and there's no clear
-            // way to undo this without reordering everything.
+
             gpxlayer.bringToFront();
         });
         gpxlayer.on("tooltipclose", function() {
             gpxlayer.setStyle(feature => ({ color, weight: 4 }));
+
+            // put all the layers back in their original order
+            for (let g of gpxlayers) {
+                g.bringToFront();
+            }
         });
     }
 });

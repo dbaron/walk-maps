@@ -18,7 +18,8 @@ html, body, div#map { margin: 0; border: none; padding: 0; width: 100%; height: 
 <script>
 
 let map = L.map("map").setView([37.447, -122.1579], 15);
-map.addLayer(new L.StamenTileLayer("terrain"));
+// "terrain", "toner"
+map.addLayer(new L.StamenTileLayer("toner"));
 
 fetch("gpx-files/list.txt").then(response => response.text()).then(text => {
     let entries = text.split("\n");
@@ -38,7 +39,7 @@ fetch("gpx-files/list.txt").then(response => response.text()).then(text => {
          * C: 69
          * H: go from hue 290 (coldest) to hue 0 (warmest)
          */
-        let c = gam_sRGB(XYZ_to_lin_sRGB(D50_to_D65(Lab_to_XYZ(LCH_to_Lab([55, 69, 290 * (entries.length - index) / entries.length]))))).map(rgb => ("0" + Math.round(Math.max(0, Math.min(rgb, 1)) * 255).toString(16)).slice(-2));
+        let c = gam_sRGB(XYZ_to_lin_sRGB(D50_to_D65(Lab_to_XYZ(LCH_to_Lab([65, 69, 290 * (entries.length - index) / entries.length]))))).map(rgb => ("0" + Math.round(Math.max(0, Math.min(rgb, 1)) * 255).toString(16)).slice(-2));
         let color = `#${c[0]}${c[1]}${c[2]}`;
         gpxlayer.on("ready", function() {
             // Need to do this after the layer loads.

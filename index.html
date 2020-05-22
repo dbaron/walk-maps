@@ -27,6 +27,14 @@ fetch("gpx-files/list.txt").then(response => response.text()).then(text => {
 
     let gpxlayers = [];
 
+    let sortLayers = function() {
+        for (let g of gpxlayers) {
+            g.bringToFront();
+        }
+    }
+
+    let pendingLoads = entries.length;
+
     for (let index in entries) {
         let gpx = entries[index];
         let isodate = gpx.substring(0, 10);
@@ -48,6 +56,10 @@ fetch("gpx-files/list.txt").then(response => response.text()).then(text => {
         gpxlayer.on("ready", function() {
             // Need to do this after the layer loads.
             gpxlayer.setStyle(feature => ({ color, weight: 4 }));
+
+            if (--pendingLoads == 0) {
+                sortLayers();
+            }
         });
 
         gpxlayer.bindTooltip(isodate, { sticky: true });
@@ -60,9 +72,7 @@ fetch("gpx-files/list.txt").then(response => response.text()).then(text => {
             gpxlayer.setStyle(feature => ({ color, weight: 4 }));
 
             // put all the layers back in their original order
-            for (let g of gpxlayers) {
-                g.bringToFront();
-            }
+            sortLayers();
         });
     }
 });
